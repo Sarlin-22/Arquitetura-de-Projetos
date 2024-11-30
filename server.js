@@ -4,10 +4,10 @@ const mysql = require('mysql2/promise');
 
 // Configurando o banco de dados
 const db = mysql.createPool({
-    host: process.env.DB_HOST || 'localhost',
-    user: process.env.DB_USER || 'root',
-    password: process.env.DB_PASSWORD || '12345678',
-    database: process.env.DB_DATABASE || 'pedidos',
+    host: process.env.DB_HOST,
+    user: process.env.DB_USER,
+    password: process.env.DB_PASSWORD,
+    database: process.env.DB_DATABASE,
 });
 /*precosse script = new precosse
 idproduto = script.getproduto_id(nome)*/
