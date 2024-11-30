@@ -1,12 +1,13 @@
+require('dotenv').config();
 const fastify = require('fastify')({ logger: true });
 const mysql = require('mysql2/promise');
 
 // Configurando o banco de dados
 const db = mysql.createPool({
-    host: 'localhost',
-    user: 'root',
-    password: '12345678',
-    database: 'pedidos',
+    host: process.env.DB_HOST || 'localhost',
+    user: process.env.DB_USER || 'root',
+    password: process.env.DB_PASSWORD || '12345678',
+    database: process.env.DB_DATABASE || 'pedidos',
 });
 /*precosse script = new precosse
 idproduto = script.getproduto_id(nome)*/
@@ -110,8 +111,8 @@ fastify.put('/pedido/quantidade/:id', async (req, reply) => {
 // Iniciando o servidor
 const start = async () => {
     try {
-        await fastify.listen({ port: 3000 });
-        console.log('Servidor rodando na porta 3000');
+        await fastify.listen({ port: process.env.PORT || 3000, host: '0.0.0.0' });
+        console.log(`Servidor rodando na porta ${process.env.PORT || 3000}`);
     } catch (err) {
         fastify.log.error(err);
         process.exit(1);
