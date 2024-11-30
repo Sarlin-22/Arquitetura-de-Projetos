@@ -1,6 +1,7 @@
 require('dotenv').config();
 const fastify = require('fastify')({ logger: true });
 const mysql = require('mysql2/promise');
+const axios = require('axios'); // Importando o axios para fazer requisições HTTP
 
 // Configurando o banco de dados
 const db = mysql.createPool({
@@ -9,9 +10,8 @@ const db = mysql.createPool({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE,
 });
-/*precosse script = new precosse
-idproduto = script.getproduto_id(nome)*/
-// Rota para obter detalhes de um produto específico (GET)
+
+// Rota para obter detalhes de um pedido específico (GET)
 fastify.get('/pedido/:id', async (req, reply) => {
     const { id } = req.params;
 
@@ -25,24 +25,43 @@ fastify.get('/pedido/:id', async (req, reply) => {
     } catch (error) {
         reply.code(500).send(error);
     }
-}); 
+});
 
-// Rota para adicionar um produto ao carrinho (POST)
+// Rota para adicionar um produto ao pedido (POST)
 fastify.post('/pedido', async (req, reply) => {
     const { produto_id, quantidade } = req.body;
 
     try {
+        // Fazendo uma requisição GET para buscar o produto na API externa
+        const productResponse = await axios.get(`https://AV3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}`);
+        
+        // Verificando se o produto foi encontrado
+        if (!productResponse.data) {
+            return reply.code(404).send({ message: 'Produto não encontrado na API externa' });
+        }
+
+        const produto = productResponse.data;
+
+        // Inserindo o produto no pedido, usando os dados do produto retornados
         const [result] = await db.execute(
-            'INSERT INTO pedido (produto_id, quantidade) VALUES (?, ?)',
-            [produto_id, quantidade]
+            'INSERT INTO pedido (produto_id, quantidade, valor_total) VALUES (?, ?, ?)',
+            [produto.id, quantidade, produto.preco * quantidade] // Supondo que "preco" é uma propriedade do produto
         );
-        reply.code(201).send({ id: result.insertId, message: 'Produto adicionado ao pedido' });
+
+        // Respondendo com sucesso
+        reply.code(201).send({
+            id: result.insertId,
+            message: 'Produto adicionado ao pedido',
+            produto: produto, // Retornando os dados do produto para confirmação
+        });
+
     } catch (error) {
-        reply.code(500).send(error);
+        console.error(error);
+        reply.code(500).send({ message: 'Erro ao adicionar produto ao pedido', error });
     }
 });
 
-// Rota para obter todos os produtos do carrinho (GET ALL)
+// Rota para obter todos os pedidos (GET ALL)
 fastify.get('/pedido', async (req, reply) => {
     try {
         const [rows] = await db.query('SELECT * FROM pedido');
@@ -52,9 +71,9 @@ fastify.get('/pedido', async (req, reply) => {
     }
 });
 
-// Rota para deletar um produto do carrinho (DELETE)
+// Rota para deletar um produto do pedido (DELETE)
 fastify.delete('/pedido/:id', async (req, reply) => {
-    const { id } = req.params; 
+    const { id } = req.params;
 
     try {
         const [result] = await db.execute('DELETE FROM pedido WHERE id = ?', [id]);
@@ -88,7 +107,7 @@ fastify.put('/pedido/status/:id', async (req, reply) => {
     }
 });
 
-// Rota para atualizar a quantidade de produtos no carrinho (PUT)
+// Rota para atualizar a quantidade de produtos no pedido (PUT)
 fastify.put('/pedido/quantidade/:id', async (req, reply) => {
     const { id } = req.params;
     const { quantidade } = req.body;
@@ -99,7 +118,7 @@ fastify.put('/pedido/quantidade/:id', async (req, reply) => {
             [quantidade, id]
         );
         if (result.affectedRows === 0) {
-            reply.code(404).send({ message: 'Produto não encontrado no carrinho' });
+            reply.code(404).send({ message: 'Produto não encontrado no pedido' });
         } else {
             reply.send({ message: 'Quantidade do produto atualizada', affectedRows: result.affectedRows });
         }
