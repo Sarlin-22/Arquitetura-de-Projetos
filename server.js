@@ -99,25 +99,6 @@ fastify.delete('/pedido/:id', async (req, reply) => {
     }
 });
 
-// Rota para atualizar o estado dos pedidos (PUT)
-fastify.put('/pedido/status/:id', async (req, reply) => {
-    const { id } = req.params;
-    const { status } = req.body;
-
-    try {
-        const [result] = await db.execute(
-            'UPDATE Pedido SET status = ? WHERE id = ?',
-            [status, id]
-        );
-        if (result.affectedRows === 0) {
-            reply.code(404).send({ message: 'Pedido não encontrado' });
-        } else {
-            reply.send({ message: 'Estado do pedido atualizado', affectedRows: result.affectedRows });
-        }
-    } catch (error) {
-        reply.code(500).send(error);
-    }
-});
 
 // Rota para atualizar a quantidade de produtos no pedido (PUT)
 fastify.put('/pedido/quantidade/:id', async (req, reply) => {
