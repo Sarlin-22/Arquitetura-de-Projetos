@@ -116,6 +116,7 @@ fastify.put('/pedido/quantidade/:id', async (req, reply) => {
     const { quantidade } = req.body;
 
     try {
+        // Buscar o pedido
         const [pedido] = await db.query('SELECT * FROM pedido WHERE id = ?', [id]);
 
         if (pedido.length === 0) {
@@ -123,8 +124,9 @@ fastify.put('/pedido/quantidade/:id', async (req, reply) => {
         }
 
         const produto_id = pedido[0].produto_id;
+        const quantidadeAnterior = pedido[0].quantidade; // Quantidade anterior do pedido
 
-        // Buscar o produto para verificar estoque
+        // Buscar o produto na API
         const productResponse = await axios.get(
             `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}`
         );
@@ -135,23 +137,34 @@ fastify.put('/pedido/quantidade/:id', async (req, reply) => {
 
         const produto = productResponse.data;
 
-        if (produto.stock < quantidade) {
+        // Verificar se o estoque é suficiente para a nova quantidade
+        if (produto.stock < (quantidade - quantidadeAnterior)) {
             return reply.code(400).send({ message: 'Estoque insuficiente para atualizar a quantidade' });
         }
 
-        // Atualizar a quantidade do pedido
+        // Atualizar a quantidade do pedido e o valor total
         const valorTotal = produto.price * quantidade;
         const [result] = await db.execute(
             'UPDATE pedido SET quantidade = ?, valor_total = ? WHERE id = ?',
             [quantidade, valorTotal, id]
         );
 
-        reply.send({ message: 'Quantidade atualizada com sucesso', affectedRows: result.affectedRows });
+        // Atualizar o estoque na API (adicionar ou subtrair a quantidade do estoque)
+        const quantidadeAlterada = quantidade - quantidadeAnterior;
+        await axios.put(
+            `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}/stock?quantity=${quantidadeAlterada}`
+        );
+
+        reply.send({
+            message: 'Quantidade atualizada com sucesso e estoque ajustado',
+            affectedRows: result.affectedRows
+        });
     } catch (error) {
         console.error(error);
         reply.code(500).send({ message: 'Erro ao atualizar pedido', error: error.message });
     }
 });
+
 
 // Iniciando o servidor
 const start = async () => {
