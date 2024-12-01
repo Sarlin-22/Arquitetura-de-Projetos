@@ -9,6 +9,7 @@ const db = mysql.createPool({
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE,
+    port: process.env.DB_PORT
 });
 
 // Rota para obter detalhes de um pedido específico (GET)
@@ -142,8 +143,8 @@ fastify.put('/pedido/quantidade/:id', async (req, reply) => {
 // Iniciando o servidor
 const start = async () => {
     try {
-        await fastify.listen({ port: process.env.PORT || 3000, host: '0.0.0.0' });
-        console.log(`Servidor rodando na porta ${process.env.PORT || 3000}`);
+        await fastify.listen({ port: process.env.DB_PORT});
+        console.log(`Servidor rodando na porta ${process.env.DB_PORT}`);
     } catch (err) {
         fastify.log.error(err);
         process.exit(1);
