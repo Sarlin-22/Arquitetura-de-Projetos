@@ -35,7 +35,7 @@ fastify.post('/pedido', async (req, reply) => {
 
     try {
         // Buscar produto
-        const productResponse = await axios.get(`https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}`);
+        const productResponse = await axios.get(`https://av3-arquitetura-de-projetos-production.up.railway.app/api/products${produto_id}`);
         
         if (!productResponse.data) {
             return reply.code(404).send({ message: 'Produto não encontrado' });
@@ -143,8 +143,8 @@ fastify.put('/pedido/quantidade/:id', async (req, reply) => {
 // Iniciando o servidor
 const start = async () => {
     try {
-        await fastify.listen({ port: process.env.PORT});
-        console.log(`Servidor rodando na porta ${process.env.PORT}`);
+        await fastify.listen({ port: process.env.PORT || 3000, host: '0.0.0.0' });
+        console.log(`Servidor rodando na porta ${process.env.PORT || 3000}`);
     } catch (err) {
         fastify.log.error(err);
         process.exit(1);
