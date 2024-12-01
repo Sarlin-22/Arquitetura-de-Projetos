@@ -30,7 +30,7 @@ fastify.get('/pedido/:id', async (req, reply) => {
 // Rota para adicionar um produto ao pedido (POST)
 // No serviço de pedidos, atualizar a rota POST
 fastify.post('/pedido', async (req, reply) => {
-    const { produto_id, quantidade } = req.body;
+    const { produto_id, quantidade  } = req.body;
 
     try {
         // Buscar produto
