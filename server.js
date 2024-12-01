@@ -9,7 +9,7 @@ const db = mysql.createPool({
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE,
-    port: process.env.DB_PORT
+    port: process.env.PORT
 });
 
 // Rota para obter detalhes de um pedido específico (GET)
@@ -35,7 +35,7 @@ fastify.post('/pedido', async (req, reply) => {
 
     try {
         // Buscar produto
-        const productResponse = await axios.get(`https://av3-arquitetura-de-projetos-production.up.railway.app/api/products${produto_id}`);
+        const productResponse = await axios.get(`https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}`);
         
         if (!productResponse.data) {
             return reply.code(404).send({ message: 'Produto não encontrado' });
@@ -143,8 +143,8 @@ fastify.put('/pedido/quantidade/:id', async (req, reply) => {
 // Iniciando o servidor
 const start = async () => {
     try {
-        await fastify.listen({ port: process.env.DB_PORT});
-        console.log(`Servidor rodando na porta ${process.env.DB_PORT}`);
+        await fastify.listen({ port: process.env.PORT});
+        console.log(`Servidor rodando na porta ${process.env.PORT}`);
     } catch (err) {
         fastify.log.error(err);
         process.exit(1);
