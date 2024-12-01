@@ -28,36 +28,48 @@ fastify.get('/pedido/:id', async (req, reply) => {
 });
 
 // Rota para adicionar um produto ao pedido (POST)
+// No serviço de pedidos, atualizar a rota POST
 fastify.post('/pedido', async (req, reply) => {
     const { produto_id, quantidade } = req.body;
 
     try {
-        // Fazendo uma requisição GET para buscar o produto na API externa
-        const productResponse = await axios.get(`https://AV3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}`);
+        // Buscar produto
+        const productResponse = await axios.get(`https://av3-arquitetura-de-projetos-production.up.railway.app/api/products${produto_id}`);
         
-        // Verificando se o produto foi encontrado
         if (!productResponse.data) {
-            return reply.code(404).send({ message: 'Produto não encontrado na API externa' });
+            return reply.code(404).send({ message: 'Produto não encontrado' });
         }
 
         const produto = productResponse.data;
 
-        // Inserindo o produto no pedido, usando os dados do produto retornados
+        // Verificar estoque
+        if (produto.stock < quantidade) {
+            return reply.code(400).send({ message: 'Estoque insuficiente' });
+        }
+
+        // Criar pedido
         const [result] = await db.execute(
             'INSERT INTO pedido (produto_id, quantidade, valor_total) VALUES (?, ?, ?)',
-            [produto.id, quantidade, produto.preco * quantidade] // Supondo que "preco" é uma propriedade do produto
+            [produto.id, quantidade, produto.price * quantidade]
         );
 
-        // Respondendo com sucesso
+        // Atualizar estoque
+        await axios.put(
+            `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}/stock?quantity=${quantidade}`
+        );
+
         reply.code(201).send({
             id: result.insertId,
-            message: 'Produto adicionado ao pedido',
-            produto: produto, // Retornando os dados do produto para confirmação
+            message: 'Pedido criado e estoque atualizado',
+            produto: produto
         });
 
     } catch (error) {
         console.error(error);
-        reply.code(500).send({ message: 'Erro ao adicionar produto ao pedido', error });
+        reply.code(500).send({ 
+            message: 'Erro ao processar pedido', 
+            error: error.message 
+        });
     }
 });
 
