@@ -32,46 +32,52 @@ fastify.get('/pedido/:id', async (req, reply) => {
 fastify.post('/pedido', async (req, reply) => {
     const { produto_id, quantidade } = req.body;
 
+    // Verifique se o produto_id foi passado corretamente e é válido
+    if (!produto_id || isNaN(produto_id)) {
+        return reply.code(400).send({ message: 'Produto não encontrado ou id inválido' });
+    }
+
     try {
-        // Buscar produto na API de produtos
+        // Buscar produto utilizando produto_id corretamente na URL
         const productResponse = await axios.get(
             `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}`
         );
 
+        // Verificar se o produto foi encontrado
         if (!productResponse.data) {
             return reply.code(404).send({ message: 'Produto não encontrado' });
         }
 
         const produto = productResponse.data;
 
-        // Verificar se há estoque suficiente
+        // Verificar estoque
         if (produto.stock < quantidade) {
             return reply.code(400).send({ message: 'Estoque insuficiente' });
         }
 
-        // Criar o pedido no banco de dados
-        const valorTotal = produto.price * quantidade;
+        // Criar pedido no banco de dados
         const [result] = await db.execute(
             'INSERT INTO pedido (produto_id, quantidade, valor_total) VALUES (?, ?, ?)',
-            [produto.id, quantidade, valorTotal]
+            [produto.id, quantidade, produto.price * quantidade]
         );
 
-        // Atualizar estoque do produto
+        // Atualizar estoque no sistema externo
         await axios.put(
-            `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}/stock`,
-            { quantity: quantidade }
+            `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}/stock?quantity=${quantidade}`
         );
 
+        // Retornar resposta ao cliente
         reply.code(201).send({
             id: result.insertId,
             message: 'Pedido criado e estoque atualizado',
-            pedido: { produto_id, quantidade, valor_total: valorTotal }
+            produto: produto
         });
+
     } catch (error) {
         console.error(error);
         reply.code(500).send({
             message: 'Erro ao processar pedido',
-            error: error.response?.data || error.message,
+            error: error.message
         });
     }
 });
