@@ -27,11 +27,9 @@ fastify.get('/pedido/:id', async (req, reply) => {
     }
 });
 
-// Adiciona um produto ao pedido
 fastify.post('/pedido', async (req, reply) => {
     const { produto_id, quantidade } = req.body;
 
-    // Verifica se o produto_id e valido
     if (!produto_id || isNaN(produto_id)) {
         return reply.code(400).send({ message: 'Produto não encontrado ou id inválido' });
     }
@@ -80,7 +78,6 @@ fastify.post('/pedido', async (req, reply) => {
     }
 });
 
-// Obter todos os pedidos
 fastify.get('/pedido', async (req, reply) => {
     try {
         const [rows] = await db.query('SELECT * FROM pedido');
@@ -91,7 +88,6 @@ fastify.get('/pedido', async (req, reply) => {
     }
 });
 
-// Deletar um produto do pedido
 fastify.delete('/pedido/:id', async (req, reply) => {
     const { id } = req.params;
 
@@ -99,16 +95,67 @@ fastify.delete('/pedido/:id', async (req, reply) => {
         const [result] = await db.execute('DELETE FROM pedido WHERE id = ?', [id]);
         if (result.affectedRows === 0) {
             reply.code(404).send({ message: 'Pedido não encontrado' });
-        } else {
-            reply.send({ message: 'Pedido deletado com sucesso' });
         }
+        
     } catch (error) {
         console.error(error);
         reply.code(500).send({ message: 'Erro ao deletar pedido', error: error.message });
     }
 });
 
-// Iniciando o servidor
+fastify.put('/pedido/quantidade/:id', async (req, reply) => {
+    const { id } = req.params;
+    const { quantidade } = req.body;
+
+    try {
+        const [pedido] = await db.query('SELECT * FROM pedido WHERE id = ?', [id]);
+
+        if (pedido.length === 0) {
+            return reply.code(404).send({ message: 'Pedido não encontrado' });
+        }
+
+        const produto_id = pedido[0].produto_id;
+        const quantidadeAnterior = pedido[0].quantidade;
+
+        // Busca o produto na API
+        const productResponse = await axios.get(
+            `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}`
+        );
+
+        if (!productResponse.data) {
+            return reply.code(404).send({ message: 'Produto não encontrado na API' });
+        }
+
+        const produto = productResponse.data;
+
+        // Verificar se a estoque suficiente para a quantidade
+        if (produto.stock < (quantidade - quantidadeAnterior)) {
+            return reply.code(400).send({ message: 'Estoque insuficiente para atualizar a quantidade' });
+        }
+
+        // Atualiza a quantidade e o valor_total
+        const valorTotal = produto.price * quantidade;
+        const [result] = await db.execute(
+            'UPDATE pedido SET quantidade = ?, valor_total = ? WHERE id = ?',
+            [quantidade, valorTotal, id]
+        );
+
+        // Atualizar o estoque na API
+        const quantidadeAlterada = quantidade - quantidadeAnterior;
+        await axios.put(
+            `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}/stock?quantity=${quantidadeAlterada}`
+        );
+
+        reply.send({
+            message: 'Quantidade atualizada com sucesso e estoque ajustado',
+            affectedRows: result.affectedRows
+        });
+    } catch (error) {
+        console.error(error);
+        reply.code(500).send({ message: 'Erro ao atualizar pedido', error: error.message });
+    }
+});
+
 const start = async () => {
     try {
         await fastify.listen({ port: process.env.PORT || 3000, host: '0.0.0.0' });
