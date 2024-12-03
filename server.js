@@ -124,7 +124,7 @@ fastify.put('/pedido/quantidade/:id', async (req, reply) => {
 
         // Busca o produto na API
         const productResponse = await axios.get(
-            `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}`
+            `https://av3-arquitetura-de-projetos-production.up.railway.app/products/${produto_id}`
         );
 
         if (!productResponse.data) {
@@ -148,7 +148,7 @@ fastify.put('/pedido/quantidade/:id', async (req, reply) => {
         // Atualizar o estoque na API
         const quantidadeAlterada = quantidade - quantidadeAnterior;
         await axios.put(
-            `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}/stock?quantity=${quantidadeAlterada}`
+            `https://av3-arquitetura-de-projetos-production.up.railway.app/products/${produto_id}/stock?quantity=${quantidadeAlterada}`
         );
 
         reply.send({
@@ -171,5 +171,5 @@ const start = async () => {
         process.exit(1);
     }
 };
-// ola
+
 start();
