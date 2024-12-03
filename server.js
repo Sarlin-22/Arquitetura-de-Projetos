@@ -27,11 +27,9 @@ fastify.get('/pedido/:id', async (req, reply) => {
     }
 });
 
-// Adiciona um produto ao pedido
 fastify.post('/pedido', async (req, reply) => {
     const { produto_id, quantidade } = req.body;
 
-    // Verifica se o produto_id e valido
     if (!produto_id || isNaN(produto_id)) {
         return reply.code(400).send({ message: 'Produto não encontrado ou id inválido' });
     }
@@ -80,7 +78,6 @@ fastify.post('/pedido', async (req, reply) => {
     }
 });
 
-// Obter todos os pedidos
 fastify.get('/pedido', async (req, reply) => {
     try {
         const [rows] = await db.query('SELECT * FROM pedido');
@@ -91,7 +88,6 @@ fastify.get('/pedido', async (req, reply) => {
     }
 });
 
-// Deletar um produto do pedido
 fastify.delete('/pedido/:id', async (req, reply) => {
     const { id } = req.params;
 
@@ -160,7 +156,6 @@ fastify.put('/pedido/quantidade/:id', async (req, reply) => {
     }
 });
 
-// Iniciando o servidor
 const start = async () => {
     try {
         await fastify.listen({ port: process.env.PORT || 3000, host: '0.0.0.0' });
