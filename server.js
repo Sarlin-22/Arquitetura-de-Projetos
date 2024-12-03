@@ -39,7 +39,7 @@ fastify.post('/pedido', async (req, reply) => {
     try {
         // Buscar produto da tabela do leonardo
         const productResponse = await axios.get(
-            `https://av3-arquitetura-de-projetos-production.up.railway.app/products/${produto_id}`
+            `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}`
         );
 
         // Verifica encontrou o produto
@@ -100,7 +100,7 @@ fastify.delete('/pedido/:id', async (req, reply) => {
         if (result.affectedRows === 0) {
             reply.code(404).send({ message: 'Pedido não encontrado' });
         } else {
-            reply.send({ message: 'Pedido deletado com sucesso' })
+            reply.send({ message: 'Pedido deletado com sucesso' });
         }
     } catch (error) {
         console.error(error);
