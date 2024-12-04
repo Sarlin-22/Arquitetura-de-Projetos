@@ -3,6 +3,7 @@ const fastify = require('fastify')({ logger: true });
 const mysql = require('mysql2/promise');
 const axios = require('axios');
 
+// Configuração da conexão com o banco de dados
 const db = mysql.createPool({
     host: process.env.DB_HOST,
     user: process.env.DB_USER,
@@ -10,7 +11,7 @@ const db = mysql.createPool({
     database: process.env.DB_DATABASE,
 });
 
-// Obter detalhes de um so pedido
+// Obter detalhes de um pedido
 fastify.get('/pedido/:id', async (req, reply) => {
     const { id } = req.params;
 
@@ -22,34 +23,33 @@ fastify.get('/pedido/:id', async (req, reply) => {
             reply.send(rows[0]);
         }
     } catch (error) {
-        console.error(error);
+        console.error("Erro ao buscar pedido:", error.message);
         reply.code(500).send({ message: 'Erro ao buscar pedido', error: error.message });
     }
 });
 
-// Adiciona um produto ao pedido
+// Adicionar um produto ao pedido
 fastify.post('/pedido', async (req, reply) => {
     const { produto_id, quantidade } = req.body;
 
-    // Verifica se o produto_id e valido
-    if (!produto_id || isNaN(produto_id)) {
+    // Validação do produto_id
+    if (!produto_id || isNaN(produto_id) || produto_id <= 0) {
         return reply.code(400).send({ message: 'Produto não encontrado ou id inválido' });
     }
 
     try {
-        // Buscar produto da tabela do leonardo
+        // Buscar produto na API
         const productResponse = await axios.get(
             `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}`
         );
 
-        // Verifica encontrou o produto
         if (!productResponse.data) {
             return reply.code(404).send({ message: 'Produto não encontrado' });
         }
 
         const produto = productResponse.data;
 
-        // Verifica o estoque
+        // Verificar o estoque
         if (produto.stock < quantidade) {
             return reply.code(400).send({ message: 'Estoque insuficiente' });
         }
@@ -60,7 +60,7 @@ fastify.post('/pedido', async (req, reply) => {
             [produto.id, quantidade, produto.price * quantidade]
         );
 
-        // Atualiza o estoque do leonardo
+        // Atualizar o estoque do produto na API
         await axios.put(
             `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}/stock?quantity=${quantidade}`
         );
@@ -72,10 +72,11 @@ fastify.post('/pedido', async (req, reply) => {
         });
 
     } catch (error) {
-        console.error(error);
+        console.error("Erro ao processar pedido:", error.response?.data || error.message);
         reply.code(500).send({
             message: 'Erro ao processar pedido',
-            error: error.message
+            error: error.message,
+            detalhes: error.response?.data || null
         });
     }
 });
@@ -86,12 +87,12 @@ fastify.get('/pedido', async (req, reply) => {
         const [rows] = await db.query('SELECT * FROM pedido');
         reply.send(rows);
     } catch (error) {
-        console.error(error);
+        console.error("Erro ao buscar pedidos:", error.message);
         reply.code(500).send({ message: 'Erro ao buscar pedidos', error: error.message });
     }
 });
 
-// Deletar um produto do pedido
+// Deletar um pedido
 fastify.delete('/pedido/:id', async (req, reply) => {
     const { id } = req.params;
 
@@ -103,11 +104,12 @@ fastify.delete('/pedido/:id', async (req, reply) => {
             reply.send({ message: 'Pedido deletado com sucesso' });
         }
     } catch (error) {
-        console.error(error);
+        console.error("Erro ao deletar pedido:", error.message);
         reply.code(500).send({ message: 'Erro ao deletar pedido', error: error.message });
     }
 });
 
+// Atualizar a quantidade de um pedido
 fastify.put('/pedido/quantidade/:id', async (req, reply) => {
     const { id } = req.params;
     const { quantidade } = req.body;
@@ -122,7 +124,7 @@ fastify.put('/pedido/quantidade/:id', async (req, reply) => {
         const produto_id = pedido[0].produto_id;
         const quantidadeAnterior = pedido[0].quantidade;
 
-        // Busca o produto na API
+        // Buscar o produto na API
         const productResponse = await axios.get(
             `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}`
         );
@@ -133,19 +135,19 @@ fastify.put('/pedido/quantidade/:id', async (req, reply) => {
 
         const produto = productResponse.data;
 
-        // Verificar se a estoque suficiente para a quantidade
+        // Verificar o estoque
         if (produto.stock < (quantidade - quantidadeAnterior)) {
             return reply.code(400).send({ message: 'Estoque insuficiente para atualizar a quantidade' });
         }
 
-        // Atualiza a quantidade e o valor_total
+        // Atualizar a quantidade e o valor_total no banco
         const valorTotal = produto.price * quantidade;
         const [result] = await db.execute(
             'UPDATE pedido SET quantidade = ?, valor_total = ? WHERE id = ?',
             [quantidade, valorTotal, id]
         );
 
-        // Atualizar o estoque na API
+        // Atualizar o estoque do produto na API
         const quantidadeAlterada = quantidade - quantidadeAnterior;
         await axios.put(
             `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}/stock?quantity=${quantidadeAlterada}`
@@ -156,11 +158,12 @@ fastify.put('/pedido/quantidade/:id', async (req, reply) => {
             affectedRows: result.affectedRows
         });
     } catch (error) {
-        console.error(error);
+        console.error("Erro ao atualizar pedido:", error.response?.data || error.message);
         reply.code(500).send({ message: 'Erro ao atualizar pedido', error: error.message });
     }
 });
 
+// Iniciar o servidor
 const start = async () => {
     try {
         await fastify.listen({ port: process.env.PORT || 3000, host: '0.0.0.0' });
