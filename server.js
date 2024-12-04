@@ -10,6 +10,7 @@ const db = mysql.createPool({
     database: process.env.DB_DATABASE,
 });
 
+// Obter detalhes de um so pedido
 fastify.get('/pedido/:id', async (req, reply) => {
     const { id } = req.params;
 
@@ -26,6 +27,7 @@ fastify.get('/pedido/:id', async (req, reply) => {
     }
 });
 
+// Adiciona um produto ao pedido
 fastify.post('/pedido', async (req, reply) => {
     const { produto_id, quantidade } = req.body;
 
@@ -40,6 +42,7 @@ fastify.post('/pedido', async (req, reply) => {
             `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}`
         );
 
+        // Verifica encontrou o produto
         if (!productResponse.data) {
             return reply.code(404).send({ message: 'Produto não encontrado' });
         }
@@ -77,6 +80,7 @@ fastify.post('/pedido', async (req, reply) => {
     }
 });
 
+// Obter todos os pedidos
 fastify.get('/pedido', async (req, reply) => {
     try {
         const [rows] = await db.query('SELECT * FROM pedido');
@@ -87,6 +91,7 @@ fastify.get('/pedido', async (req, reply) => {
     }
 });
 
+// Deletar um produto do pedido
 fastify.delete('/pedido/:id', async (req, reply) => {
     const { id } = req.params;
 
