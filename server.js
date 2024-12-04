@@ -89,8 +89,6 @@ fastify.delete('/pedido/:id', async (req, reply) => {
         const [result] = await db.execute('DELETE FROM pedido WHERE id = ?', [id]);
         if (result.affectedRows === 0) {
             reply.code(404).send({ message: 'Pedido não encontrado' });
-        } else {
-            reply.send({ message: 'Pedido deletado com sucesso' });
         }
     } catch (error) {
         console.error(error);
