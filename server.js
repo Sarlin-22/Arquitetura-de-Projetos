@@ -10,7 +10,6 @@ const db = mysql.createPool({
     database: process.env.DB_DATABASE,
 });
 
-// Obter detalhes de um so pedido
 fastify.get('/pedido/:id', async (req, reply) => {
     const { id } = req.params;
 
@@ -30,6 +29,7 @@ fastify.get('/pedido/:id', async (req, reply) => {
 fastify.post('/pedido', async (req, reply) => {
     const { produto_id, quantidade } = req.body;
 
+    // Verifica se o produto_id e valido
     if (!produto_id || isNaN(produto_id)) {
         return reply.code(400).send({ message: 'Produto não encontrado ou id inválido' });
     }
@@ -40,7 +40,6 @@ fastify.post('/pedido', async (req, reply) => {
             `https://av3-arquitetura-de-projetos-production.up.railway.app/api/products/${produto_id}`
         );
 
-        // Verifica encontrou o produto
         if (!productResponse.data) {
             return reply.code(404).send({ message: 'Produto não encontrado' });
         }
@@ -95,8 +94,9 @@ fastify.delete('/pedido/:id', async (req, reply) => {
         const [result] = await db.execute('DELETE FROM pedido WHERE id = ?', [id]);
         if (result.affectedRows === 0) {
             reply.code(404).send({ message: 'Pedido não encontrado' });
+        } else {
+            reply.send({ message: 'Pedido deletado com sucesso' });
         }
-        
     } catch (error) {
         console.error(error);
         reply.code(500).send({ message: 'Erro ao deletar pedido', error: error.message });
